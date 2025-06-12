@@ -178,12 +178,12 @@ xlsxFile.addEventListener('change', (event) => {
             }
 
             const headers = json[0];
-            const nameColIndex = headers.findIndex(h => h.trim().toLowerCase() === 'nombre del elemento');
-            const ratingColIndex = headers.findIndex(h => h.trim().toLowerCase() === 'calificación');
-            const dateColIndex = headers.findIndex(h => h.trim().toLowerCase() === 'fecha');
+            const nameColIndex = headers.findIndex(h => h.trim().toLowerCase() === 'name');
+            const ratingColIndex = headers.findIndex(h => h.trim().toLowerCase() === 'rating');
+            const dateColIndex = headers.findIndex(h => h.trim().toLowerCase() === 'date');
 
             if (nameColIndex === -1 || ratingColIndex === -1 || dateColIndex === -1) {
-                showMessage('Las columnas "Nombre del Elemento", "Calificación" y "Fecha" son obligatorias en el archivo XLSX.', 'error');
+                showMessage('"Name", Rating" and "Date" are obligatory.', 'error');
                 return;
             }
 
