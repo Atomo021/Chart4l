@@ -1,0 +1,35 @@
+body {
+	background-color: #280b0b;
+	color: #dbe0e9;
+	font-family: sans-serif;
+	text-align: center;
+}
+
+a {
+	color: white;
+	text-decoration:none;
+}
+
+ul {
+	text-align: center;
+}
+
+li {
+	color: #3380ff;
+}
+
+footer {
+	text-align: center;
+}
+
+img {
+	height:150px;
+}
+
+.classAbout {
+	text-align:center;
+}
+
+.bodyAbout p{
+	text-align:left;
+}
