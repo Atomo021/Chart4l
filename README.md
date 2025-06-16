@@ -9,3 +9,5 @@ Lo más particular de esta herramienta es que **gran parte de su código JavaScr
 Para añadir tus datos y crear tus tops, tienes dos opciones: puedes hacerlo **manualmente** dentro de la interfaz, o si prefieres trabajar con volúmenes mayores de información, puedes **importar y exportar tus listas y datos en formato XLSX (hojas de cálculo)**. Esto te da flexibilidad para gestionar tu contenido.
 
 Quiero ser muy claro: **este proyecto no busca competir ni reemplazar tus plataformas favoritas**. Es una iniciativa independiente, pensada como una herramienta complementaria y una demostración de lo que se puede lograr con las tecnologías actuales. ¡Espero que disfrutes creando tus propios tops!
+
+Copyright © 2025 Atomo021. Publicado bajo la licencia CC BY-NC 4.0.
