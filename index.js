@@ -1,20 +1,23 @@
 // script.js
 
 // Referencias a elementos del DOM
-// const csvFile = document.getElementById('csvFile'); // Eliminado: el input de archivo CSV ya no existe
 const chartBody = document.getElementById('chartBody');
 const exportXlsxButton = document.getElementById('exportXlsx'); // Botón de exportar XLSX
 const clearDataButton = document.getElementById('clearData');
 const messageBox = document.getElementById('messageBox');
 const mainTitle = document.getElementById('mainTitle'); // Elemento H1 para el título principal
+const xlsxFile = document.getElementById('xlsxFile'); // Input de archivo XLSX
 
 // Elementos para la entrada manual de datos
 const itemNameInput = document.getElementById('itemNameInput');
 const itemRatingInput = document.getElementById('itemRatingInput');
 const itemDateInput = document.getElementById('itemDateInput'); // Input de fecha
+const itemSpecialReleaseInput = document.getElementById('itemSpecialReleaseInput'); // Nuevo: Checkbox para lanzamiento especial
 const addItemButton = document.getElementById('addItemButton');
 
-let chartData = []; // Array para almacenar los objetos de los elementos: [{ name: 'Item A', rating: 3.5, date: 'YYYY-MM-DD' }]
+// Array para almacenar los objetos de los elementos:
+// [{ name: 'Item A', rating: 3.5, date: 'YYYY-MM-DD', isSpecialRelease: false }]
+let chartData = [];
 
 /**
  * Muestra una notificación temporal en un cuadro de mensaje.
@@ -56,19 +59,29 @@ function showMessage(message, type = 'success') {
 }
 
 /**
- * Ordena los datos de la tabla por calificación (descendente) y luego por fecha (ascendente).
+ * Ordena los datos de la tabla por calificación (descendente),
+ * luego por 'isSpecialRelease' (especiales al final), y luego por fecha (ascendente).
  */
 function sortChartData() {
     chartData.sort((a, b) => {
-        // Ordenamiento primario: calificación en orden descendente (más alta primero)
+        // 1. Ordenamiento primario: calificación en orden descendente (más alta primero)
         if (b.rating !== a.rating) {
-            return b.rating - a.rating; // Orden descendente para la calificación
+            return b.rating - a.rating;
         }
-        // Ordenamiento secundario: fecha en orden ascendente (más antigua primero)
+
+        // 2. Ordenamiento secundario: isSpecialRelease (false primero, true después)
+        // Esto empujará las releases especiales al final dentro de la misma calificación.
+        // false (0) - true (1) = -1 (a viene antes)
+        // true (1) - false (0) = 1 (a viene después)
+        if (a.isSpecialRelease !== b.isSpecialRelease) {
+            return (a.isSpecialRelease ? 1 : 0) - (b.isSpecialRelease ? 1 : 0);
+        }
+
+        // 3. Ordenamiento terciario: fecha en orden ascendente (más antigua primero)
         // Usar 0 para fechas inválidas para empujarlas al principio si no es una cadena de fecha válida
         const dateA = new Date(a.date).getTime();
         const dateB = new Date(b.date).getTime();
-        return dateA - dateB; // Orden ascendente para la fecha
+        return dateA - dateB;
     });
 }
 
@@ -78,7 +91,7 @@ function sortChartData() {
 function renderChart() {
     chartBody.innerHTML = ''; // Limpiar filas existentes
     if (chartData.length === 0) {
-        chartBody.innerHTML = '<tr><td colspan="4">No hay datos para mostrar. Agrega un elemento manualmente o importa un archivo XLSX.</td></tr>'; // Mensaje actualizado
+        chartBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No hay datos para mostrar. Agrega un elemento manualmente o importa un archivo XLSX.</td></tr>'; // Mensaje actualizado
         return;
     }
 
@@ -86,7 +99,6 @@ function renderChart() {
 
     chartData.forEach((item, index) => {
         const row = document.createElement('tr');
-        // Sin clases para el estilo de la fila
         // Formatear fecha para mostrar
         const displayDate = item.date ? new Date(item.date).toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' }) : 'N/A';
 
@@ -98,6 +110,9 @@ function renderChart() {
                 <button data-action="decrement" data-index="${index}">-</button>
             </td>
             <td>${displayDate}</td>
+            <td class="${item.isSpecialRelease ? 'text-purple-600 font-semibold' : 'text-gray-500'}">
+                ${item.isSpecialRelease ? 'Especial' : 'Normal'}
+            </td>
             <td>
                 <button data-action="delete" data-index="${index}">Eliminar</button>
             </td>
@@ -106,10 +121,10 @@ function renderChart() {
     });
 
     // Añadir escuchadores de eventos para los inputs de calificación y botones
-    chartBody.querySelectorAll('input[type="number"]').forEach(input => { // Dirigido por tipo ahora
+    chartBody.querySelectorAll('input[type="number"]').forEach(input => {
         input.addEventListener('change', handleRatingChange);
     });
-    chartBody.querySelectorAll('button').forEach(button => { // Dirigido por tipo ahora
+    chartBody.querySelectorAll('button').forEach(button => {
         button.addEventListener('click', handleRatingButtonClick);
     });
 }
@@ -123,19 +138,23 @@ function saveChartData() {
 
 /**
  * Carga los datos de la tabla desde el almacenamiento local al cargar la página.
+ * Asegura que los datos antiguos sin 'isSpecialRelease' obtengan un valor predeterminado.
  */
 function loadChartData() {
     const storedData = localStorage.getItem('customChartData');
     if (storedData) {
         chartData = JSON.parse(storedData);
-        // Asegurarse de que los datos antiguos sin fechas obtengan una fecha predeterminada para el ordenamiento
+        // Asegurarse de que los datos antiguos sin fechas y sin isSpecialRelease obtengan un valor predeterminado
         chartData.forEach(item => {
             if (!item.date) {
                 item.date = new Date().toISOString().split('T')[0]; // Predeterminado a la fecha actual
             }
+            if (typeof item.isSpecialRelease === 'undefined') {
+                item.isSpecialRelease = false; // Predeterminado a false para entradas antiguas
+            }
         });
         renderChart();
-        showMessage('Back to the point...', 'info');
+        showMessage('Datos cargados desde el almacenamiento local.', 'info');
     } else {
         renderChart(); // Renderizar tabla vacía si no hay datos
     }
@@ -144,6 +163,8 @@ function loadChartData() {
     const storedTitle = localStorage.getItem('chartTitle');
     if (storedTitle) {
         mainTitle.textContent = storedTitle;
+        mainTitle.style.color = ''; // Quitar color de marcador de posición
+        mainTitle.style.fontStyle = ''; // Quitar estilo de marcador de posición
     } else {
         // Establecer marcador de posición si está vacío
         mainTitle.textContent = mainTitle.dataset.placeholder;
@@ -177,13 +198,14 @@ xlsxFile.addEventListener('change', (event) => {
                 return;
             }
 
-            const headers = json[0];
-            const nameColIndex = headers.findIndex(h => h.trim().toLowerCase() === 'name');
-            const ratingColIndex = headers.findIndex(h => h.trim().toLowerCase() === 'rating');
-            const dateColIndex = headers.findIndex(h => h.trim().toLowerCase() === 'date');
+            const headers = json[0].map(h => String(h).trim().toLowerCase()); // Normalizar encabezados
+            const nameColIndex = headers.indexOf('name');
+            const ratingColIndex = headers.indexOf('rating');
+            const dateColIndex = headers.indexOf('date');
+            const specialReleaseColIndex = headers.indexOf('isspecialrelease'); // Nuevo índice
 
             if (nameColIndex === -1 || ratingColIndex === -1 || dateColIndex === -1) {
-                showMessage('"Name", Rating" and "Date" are obligatory.', 'error');
+                showMessage('"Name", "Rating" y "Date" son columnas obligatorias en el archivo XLSX.', 'error');
                 return;
             }
 
@@ -194,6 +216,9 @@ xlsxFile.addEventListener('change', (event) => {
                 const name = row[nameColIndex] ? String(row[nameColIndex]).trim() : '';
                 let rating = parseFloat(row[ratingColIndex]);
                 let date = row[dateColIndex];
+                // Leer isSpecialRelease, si no existe o es inválido, por defecto es false
+                let isSpecialRelease = specialReleaseColIndex !== -1 ? (String(row[specialReleaseColIndex]).trim().toLowerCase() === 'true' || String(row[specialReleaseColIndex]).trim() === '1') : false;
+
 
                 if (name === '') {
                     showMessage(`Advertencia: Fila ${rowIndex + 2}: El nombre del elemento está vacío y la fila será omitida.`, 'warning');
@@ -207,33 +232,33 @@ xlsxFile.addEventListener('change', (event) => {
                     hasParseError = true;
                 }
 
-                // Convert XLSX date number to YYYY-MM-DD string if it's a number
+                // Convertir número de fecha de XLSX a cadena YYYY-MM-DD
                 if (typeof date === 'number') {
+                    // La fecha de Excel es el número de días desde 1900-01-01 (con un ajuste)
                     date = new Date(Math.round((date - (25567 + 1)) * 86400 * 1000)).toISOString().split('T')[0];
                 } else if (typeof date === 'string' && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-                    date = new Date().toISOString().split('T')[0]; // Default to current date if string is not YYYY-MM-DD
+                    date = new Date().toISOString().split('T')[0]; // Default a la fecha actual si la cadena no es YYYY-MM-DD
                     showMessage(`Advertencia: Fila ${rowIndex + 2}: La fecha para "${name}" no es válida y se estableció en la fecha actual.`, 'warning');
                     hasParseError = true;
-                } else if (!date) { // If date is null/undefined/empty
-                    date = new Date().toISOString().split('T')[0]; // Default to current date
+                } else if (!date) { // Si la fecha es nula/indefinida/vacía
+                    date = new Date().toISOString().split('T')[0]; // Predeterminado a la fecha actual
                     showMessage(`Advertencia: Fila ${rowIndex + 2}: No se proporcionó fecha para "${name}", se usó la fecha actual.`, 'info');
                 }
 
-
-                newData.push({ name: name, rating: rating, date: date });
+                newData.push({ name: name, rating: rating, date: date, isSpecialRelease: isSpecialRelease });
             });
 
-            chartData = newData; // Replace old data with new
+            chartData = newData; // Reemplazar datos antiguos con los nuevos
             saveChartData();
             renderChart();
             if (!hasParseError) {
-                showMessage('Archivo XLSX importado exitosamente!', 'success');
+                showMessage('XLSX imported sucessfully!', 'success');
             } else {
-                showMessage('Archivo XLSX importado con algunas advertencias.', 'warning');
+                showMessage('imported but...', 'warning');
             }
 
         } catch (error) {
-            showMessage(`Error al procesar el archivo XLSX: ${error.message}`, 'error');
+            showMessage(`Error: ${error.message}`, 'error');
             console.error(error);
         }
     };
@@ -248,8 +273,8 @@ function handleRatingChange(event) {
     const index = event.target.dataset.index;
     let newRating = parseFloat(event.target.value);
 
-    if (isNaN(newRating) || newRating < 0) {
-        newRating = 0; // Predeterminado a 0 si es inválido
+    if (isNaN(newRating) || newRating < 0.5) {
+        newRating = 0.5; // Predeterminado a 0.5 si es inválido
         showMessage('La calificación no es válida y se ha establecido en 0.', 'warning');
     } else if (newRating > 5) {
         newRating = 5; // Limitar a 5
@@ -300,14 +325,15 @@ addItemButton.addEventListener('click', () => {
     const name = itemNameInput.value.trim();
     let rating = parseFloat(itemRatingInput.value);
     let date = itemDateInput.value; // Obtener fecha del input
+    const isSpecialRelease = itemSpecialReleaseInput.checked; // Obtener el estado del checkbox
 
     if (name === '') {
         showMessage('El nombre del elemento no puede estar vacío.', 'error');
         return;
     }
 
-    if (isNaN(rating) || rating < 0 || rating > 5) {
-        showMessage('La calificación debe ser un número entre 0 y 5.', 'error');
+    if (isNaN(rating) || rating < 0.5 || rating > 5) {
+        showMessage('0.5 to 5, remember.', 'error');
         return;
     }
 
@@ -317,15 +343,16 @@ addItemButton.addEventListener('click', () => {
         showMessage('No se proporcionó fecha, se usó la fecha actual.', 'info');
     }
 
-    chartData.push({ name: name, rating: rating, date: date });
+    chartData.push({ name: name, rating: rating, date: date, isSpecialRelease: isSpecialRelease });
     saveChartData();
     renderChart();
-    showMessage('That is new.', 'success');
+    showMessage('That is new...', 'success');
 
-    // Limpiar inputs
+    // Limpiar inputs y resetear checkbox
     itemNameInput.value = '';
     itemRatingInput.value = '';
-    itemDateInput.value = ''; // Limpiar input de fecha
+    itemDateInput.value = '';
+    itemSpecialReleaseInput.checked = false;
 });
 
 /**
@@ -333,23 +360,23 @@ addItemButton.addEventListener('click', () => {
  */
 exportXlsxButton.addEventListener('click', () => {
     if (chartData.length === 0) {
-        showMessage('No hay datos para exportar.', 'warning');
+        showMessage('And the data?', 'warning');
         return;
     }
 
-    // Create a new workbook and add a worksheet
+    // Crear un nuevo libro y añadir una hoja de trabajo
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.json_to_sheet(chartData);
 
-    // Append the worksheet to the workbook
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Calificaciones');
+    // Añadir la hoja de trabajo al libro
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Califications');
 
-    // Write the workbook to an XLSX file
+    // Escribir el libro en un archivo XLSX
     try {
-        XLSX.writeFile(workbook, 'whatever_it_is.xlsx');
-        showMessage('Going to Excel...', 'success');
+        XLSX.writeFile(workbook, 'mis_calificaciones.xlsx');
+        showMessage('There we go...', 'success');
     } catch (error) {
-        showMessage(`Not going to Excel: ${error.message}`, 'error');
+        showMessage(`Error: ${error.message}`, 'error');
         console.error(error);
     }
 });
@@ -359,7 +386,7 @@ exportXlsxButton.addEventListener('click', () => {
  */
 clearDataButton.addEventListener('click', () => {
     if (chartData.length === 0) {
-        showMessage('It is a new world now.', 'info');
+        showMessage('And the data?', 'info');
         return;
     }
     // Usar una confirmación tipo modal personalizada en lugar de alert/confirm
@@ -369,7 +396,9 @@ clearDataButton.addEventListener('click', () => {
                 chartData = [];
                 saveChartData();
                 renderChart();
-                showMessage('This is a new world now.', 'success');
+                showMessage('This is a new world now...', 'success');
+            } else {
+                showMessage('Then?', 'info');
             }
         });
 });
@@ -386,7 +415,7 @@ mainTitle.addEventListener('input', () => {
     } else if (mainTitle.textContent.trim() === '') {
         mainTitle.textContent = mainTitle.dataset.placeholder;
         mainTitle.style.color = '#a0a0a0'; // Color del marcador de posición
-        mainTitle.style.fontStyle = 'italic'; // Estilo del marcador de posición
+        mainTitle.style.fontStyle = 'sans-serif'; // Estilo del marcador de posición
     }
 });
 
@@ -404,7 +433,7 @@ mainTitle.addEventListener('blur', () => {
     if (mainTitle.textContent.trim() === '') {
         mainTitle.textContent = mainTitle.dataset.placeholder;
         mainTitle.style.color = '#a0a0a0'; // Color del marcador de posición
-        mainTitle.style.fontStyle = 'italic'; // Estilo del marcador de posición
+        mainTitle.style.fontStyle = 'sans-serif'; // Estilo del marcador de posición
     }
 });
 
@@ -424,6 +453,7 @@ function confirm(message) {
         align-items: center;
         z-index: 2000;
     `;
+    modal.classList.add('modal'); // Añadir clase para posibles estilos CSS externos
 
     const dialog = document.createElement('div');
     dialog.style.cssText = `
@@ -435,6 +465,7 @@ function confirm(message) {
         max-width: 400px;
         width: 90%;
     `;
+    dialog.classList.add('modal-dialog'); // Añadir clase
 
     const text = document.createElement('p');
     text.textContent = message;
@@ -443,6 +474,7 @@ function confirm(message) {
         font-size: 1.1rem;
         color: #333;
     `;
+    text.classList.add('modal-text'); // Añadir clase
 
     const buttonContainer = document.createElement('div');
     buttonContainer.style.cssText = `
@@ -450,10 +482,10 @@ function confirm(message) {
         justify-content: center;
         gap: 15px;
     `;
+    buttonContainer.classList.add('modal-buttons'); // Añadir clase
 
     const confirmBtn = document.createElement('button');
-    confirmBtn.textContent = 'Yessirski!';
-    // Estilos de botón aplicados directamente
+    confirmBtn.textContent = 'Sí, estoy seguro';
     confirmBtn.style.cssText = `
         padding: 10px 20px;
         font-size: 1rem;
@@ -464,13 +496,13 @@ function confirm(message) {
         border: none;
         transition: background-color 0.2s;
     `;
+    confirmBtn.classList.add('modal-btn', 'modal-btn-confirm'); // Añadir clases
     confirmBtn.onmouseover = () => confirmBtn.style.backgroundColor = '#434190';
     confirmBtn.onmouseout = () => confirmBtn.style.backgroundColor = '#4c51bf';
 
 
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Not yet.';
-    // Estilos de botón aplicados directamente
     cancelBtn.style.cssText = `
         padding: 10px 20px;
         font-size: 1rem;
@@ -481,6 +513,9 @@ function confirm(message) {
         border: none;
         transition: background-color 0.2s;
     `;
+    cancelBtn.classList.add('modal-btn', 'modal-btn-cancel'); // Añadir clases
+    cancelBtn.onmouseover = () => cancelBtn.style.backgroundColor = '#006400';
+    cancelBtn.onmouseout = () => cancelBtn.style.backgroundColor = 'green';
 
 
     return new Promise((resolve) => {
