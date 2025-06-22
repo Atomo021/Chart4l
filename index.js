@@ -95,7 +95,7 @@ function sortChartData() {
 function renderChart() {
     chartBody.innerHTML = ''; // Clear existing rows
     if (chartData.length === 0) {
-        chartBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No data to display. Add an item manually or import an XLSX file.</td></tr>';
+        chartBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">No data? This table is looking kinda sus. Add an item, fren!</td></tr>';
         return;
     }
 
@@ -121,11 +121,11 @@ function renderChart() {
             </td>
             <td class="actions-cell">
                 ${index === editingRowIndex ? `
-                    <button data-action="save" data-index="${index}" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md transition-colors duration-200">Save</button>
-                    <button data-action="cancel" data-index="${index}" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-md transition-colors duration-200 ml-2">Cancel</button>
+                    <button data-action="save" data-index="${index}" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-md transition-colors duration-200">Save It!</button>
+                    <button data-action="cancel" data-index="${index}" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-md transition-colors duration-200 ml-2">Nope!</button>
                 ` : `
-                    <button data-action="edit" data-index="${index}" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md transition-colors duration-200">Edit</button>
-                    <button data-action="delete" data-index="${index}" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md transition-colors duration-200 ml-2">Delete</button>
+                    <button data-action="edit" data-index="${index}" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md transition-colors duration-200">Glow Up</button>
+                    <button data-action="delete" data-index="${index}" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md transition-colors duration-200 ml-2">Yeet</button>
                 `}
             </td>
         `;
@@ -182,7 +182,7 @@ function loadChartData() {
             }
         });
         renderChart();
-        showMessage('Data loaded from local storage.', 'info');
+        showMessage('Boop! Data go brrr from local storage.', 'info');
     } else {
         renderChart(); // Render empty table if no data
     }
@@ -222,7 +222,7 @@ xlsxFile.addEventListener('change', (event) => {
             const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
             if (json.length < 2) { // Need at least header and one data row
-                showMessage('The XLSX file is empty or contains no valid data.', 'error');
+                showMessage('This XLSX file is empty. What gives?', 'error');
                 return;
             }
 
@@ -233,7 +233,7 @@ xlsxFile.addEventListener('change', (event) => {
             const specialReleaseColIndex = headers.indexOf('isspecialrelease'); // New index
 
             if (nameColIndex === -1 || ratingColIndex === -1 || dateColIndex === -1) {
-                showMessage('"Name", "Rating", and "Date" are mandatory columns in the XLSX file.', 'error');
+                showMessage('No "Name", "Rating", or "Date" column found. Is this even an XLSX file?', 'error');
                 return;
             }
 
@@ -249,14 +249,14 @@ xlsxFile.addEventListener('change', (event) => {
 
 
                 if (name === '') {
-                    showMessage(`Warning: Row ${rowIndex + 2}: Item name is empty and the row will be skipped.`, 'warning');
+                    showMessage(`Warning: Row ${rowIndex + 2}: Item name is missing! Skipping this one.`, 'warning');
                     hasParseError = true;
                     return; // Skip this row
                 }
 
                 if (isNaN(rating) || rating < 0 || rating > 5) {
                     rating = 0; // Default to 0 if invalid
-                    showMessage(`Warning: Row ${rowIndex + 2}: Rating for "${name}" is invalid and set to 0.`, 'warning');
+                    showMessage(`Warning: Row ${rowIndex + 2}: Rating for "${name}" is sus! Set to 0.`, 'warning');
                     hasParseError = true;
                 }
 
@@ -272,7 +272,7 @@ xlsxFile.addEventListener('change', (event) => {
                     const month = String(today.getMonth() + 1).padStart(2, '0');
                     const day = String(today.getDate()).padStart(2, '0');
                     date = `${year}-${month}-${day}`;
-                    showMessage(`Warning: Row ${rowIndex + 2}: Date for "${name}" is invalid and set to current date.`, 'warning');
+                    showMessage(`Warning: Row ${rowIndex + 2}: Date for "${name}" is a bit broken. Used today's date instead.`, 'warning');
                     hasParseError = true;
                 } else if (!date) { // If date is null/undefined/empty
                     // Use current local date
@@ -281,7 +281,7 @@ xlsxFile.addEventListener('change', (event) => {
                     const month = String(today.getMonth() + 1).padStart(2, '0');
                     const day = String(today.getDate()).padStart(2, '0');
                     date = `${year}-${month}-${day}`;
-                    showMessage(`Warning: Row ${rowIndex + 2}: No date provided for "${name}", current date was used.`, 'info');
+                    showMessage(`Warning: Row ${rowIndex + 2}: No date? No problem! Used today's date for "${name}".`, 'info');
                 }
 
                 newData.push({ name: name, rating: rating, date: date, isSpecialRelease: isSpecialRelease });
@@ -291,13 +291,13 @@ xlsxFile.addEventListener('change', (event) => {
             saveChartData();
             renderChart();
             if (!hasParseError) {
-                showMessage('XLSX file imported successfully!', 'success');
+                showMessage('XLSX file imported successfully! Poggers.', 'success');
             } else {
-                showMessage('XLSX file imported with some warnings.', 'warning');
+                showMessage('XLSX file imported with some spicy warnings. Proceed with caution!', 'warning');
             }
 
         } catch (error) {
-            showMessage(`Error processing XLSX file: ${error.message}`, 'error');
+            showMessage(`Error processing XLSX file: ${error.message}. F in the chat.`, 'error');
             console.error(error);
         }
     };
@@ -314,17 +314,17 @@ function handleRatingChange(event) {
 
     if (isNaN(newRating) || newRating < 0) {
         newRating = 0; // Defaults to 0 if invalid
-        showMessage('Rating is invalid and has been set to 0.', 'warning');
+        showMessage('Rating invalid. Back to 0 for you!', 'warning');
     } else if (newRating > 5) {
         newRating = 5; // Limit to 5
-        showMessage('Rating cannot exceed 5 and has been set to 5.', 'warning');
+        showMessage('Whoa, too high! Max rating is 5.', 'warning');
     }
 
     chartData[index].rating = newRating;
     saveChartData();
     // Re-render to update the displayed value if limited and to reorder
     renderChart();
-    showMessage('Rating updated.', 'success');
+    showMessage('Rating rekt! (in a good way).', 'success');
 }
 
 /**
@@ -338,7 +338,7 @@ function enterEditMode(index) {
     }
     editingRowIndex = index;
     renderChart(); // Re-render the table to display the row in edit mode
-    showMessage('Edit mode activated.', 'info');
+    showMessage('It\'s morphin\' time! Edit mode engaged.', 'info');
 }
 
 /**
@@ -349,7 +349,7 @@ function saveRowEdit(index) {
     const row = chartBody.children[index]; // Get the row by its index
 
     if (!row) {
-        showMessage('Error: Row not found to save.', 'error');
+        showMessage('Error: Can\'t find that row. Is it invisible?', 'error');
         return;
     }
 
@@ -363,7 +363,7 @@ function saveRowEdit(index) {
 
 
     if (newName === '') {
-        showMessage('Item name cannot be empty.', 'error');
+        showMessage('Item name can\'t be empty. That\'s a no-no!', 'error');
         return;
     }
 
@@ -375,7 +375,7 @@ function saveRowEdit(index) {
     editingRowIndex = -1; // Exit edit mode
     saveChartData();
     renderChart(); // Re-render the table with saved changes
-    showMessage('Item saved successfully.', 'success');
+    showMessage('Saved! Stats updated. You\'re a wizard!', 'success');
 }
 
 /**
@@ -385,7 +385,7 @@ function saveRowEdit(index) {
 function cancelRowEdit(index) {
     editingRowIndex = -1; // Exit edit mode
     renderChart(); // Re-render the table to discard changes
-    showMessage('Edit canceled.', 'info');
+    showMessage('Edit canceled. We\'ll pretend this never happened.', 'info');
 }
 
 /**
@@ -405,25 +405,25 @@ function handleTableButtonClick(event) {
             chartData[index].rating = Math.min(5, chartData[index].rating + 0.5);
             saveChartData();
             renderChart(); // Re-render to update and reorder if necessary
-            showMessage('Rating incremented.', 'success');
+            showMessage('Rating up! To infinity and beyond!', 'success');
         }
     } else if (action === 'decrement') {
         if (chartData[index].rating > 0) {
             chartData[index].rating = Math.max(0, chartData[index].rating - 0.5);
             saveChartData();
             renderChart(); // Re-render to update and reorder if necessary
-            showMessage('Rating decremented.', 'success');
+            showMessage('Rating down. F in the chat.', 'success');
         }
     } else if (action === 'delete') {
-        confirm('Are you sure you want to delete this item?')
+        confirm('You sure bout dat? All data go poof, no take-backsies.')
             .then(result => {
                 if (result) {
                     chartData.splice(index, 1); // Remove item from array
                     saveChartData();
                     renderChart();
-                    showMessage('Item deleted.', 'success');
+                    showMessage('Yeeted that item right outta here!', 'success');
                 } else {
-                    showMessage('Deletion canceled.', 'info');
+                    showMessage('Deletion canceled. Phew!', 'info');
                 }
             });
     } else if (action === 'edit') {
@@ -446,12 +446,12 @@ addItemButton.addEventListener('click', () => {
     const isSpecialRelease = itemSpecialReleaseInput.checked; // Get checkbox status
 
     if (name === '') {
-        showMessage('Item name cannot be empty.', 'error');
+        showMessage('Item name cannot be empty. That\'s a blank space, baby!', 'error');
         return;
     }
 
     if (isNaN(rating) || rating < 0 || rating > 5) {
-        showMessage('Rating must be a number between 0 and 5.', 'error');
+        showMessage('Rating must be a number between 0 and 5. Are you even trying?', 'error');
         return;
     }
 
@@ -462,13 +462,13 @@ addItemButton.addEventListener('click', () => {
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
         date = `${year}-${month}-${day}`;
-        showMessage('No date provided, current date was used.', 'info');
+        showMessage('No date provided, so we used today\'s. You\'re welcome!', 'info');
     }
 
     chartData.push({ name: name, rating: rating, date: date, isSpecialRelease: isSpecialRelease });
     saveChartData();
     renderChart();
-    showMessage('New item added.', 'success');
+    showMessage('Another one bites the dust! New item added.', 'success');
 
     // Clear inputs and reset checkbox
     itemNameInput.value = '';
@@ -482,7 +482,7 @@ addItemButton.addEventListener('click', () => {
  */
 exportXlsxButton.addEventListener('click', () => {
     if (chartData.length === 0) {
-        showMessage('No data to export.', 'warning');
+        showMessage('Nothing to export. My data senses are tingling, but there\'s nothing here!', 'warning');
         return;
     }
 
@@ -496,9 +496,10 @@ exportXlsxButton.addEventListener('click', () => {
     // Write the workbook to an XLSX file
     try {
         XLSX.writeFile(workbook, 'my_ratings.xlsx');
-        showMessage('Exporting to Excel...', 'success');
-    } catch (error) {
-        showMessage(`Error exporting to Excel: ${error.message}`, 'error');
+        showMessage('Sending data to the spreadsheet dimension... plz no crash!', 'success');
+    } /* eslint-disable-next-line no-unused-vars */
+    catch (error) {
+        showMessage(`Error exporting to Excel: ${error.message}. Epic fail.`, 'error');
         console.error(error);
     }
 });
@@ -508,19 +509,19 @@ exportXlsxButton.addEventListener('click', () => {
  */
 clearDataButton.addEventListener('click', () => {
     if (chartData.length === 0) {
-        showMessage('No data to clear.', 'info');
+        showMessage('Already empty. My work here is done.', 'info');
         return;
     }
     // Use a custom modal confirmation instead of alert/confirm
-    confirm('Are you sure you want to clear all data? This action is irreversible.')
+    confirm('You sure you wanna go full Thanos on your data? It\'s irreversible, fam.')
         .then(result => {
             if (result) {
                 chartData = [];
                 saveChartData();
                 renderChart();
-                showMessage('All data has been cleared.', 'success');
+                showMessage('All data yeeted! A new beginning.', 'success');
             } else {
-                showMessage('Deletion operation canceled.', 'info');
+                showMessage('Phew, that was close! Data protected.', 'info');
             }
         });
 });
@@ -607,7 +608,7 @@ function confirm(message) {
     buttonContainer.classList.add('modal-buttons'); // Add class
 
     const confirmBtn = document.createElement('button');
-    confirmBtn.textContent = 'Yes, I\'m sure';
+    confirmBtn.textContent = 'Do it!';
     confirmBtn.style.cssText = `
         padding: 10px 20px;
         font-size: 1rem;
@@ -624,7 +625,7 @@ function confirm(message) {
 
 
     const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'No, cancel';
+    cancelBtn.textContent = 'Nah, I\'m good.';
     cancelBtn.style.cssText = `
         padding: 10px 20px;
         font-size: 1rem;
