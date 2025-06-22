@@ -415,7 +415,7 @@ function handleTableButtonClick(event) {
             showMessage('Rating down. F in the chat.', 'success');
         }
     } else if (action === 'delete') {
-        confirm('You sure bout dat? All data go poof, no take-backsies.')
+        confirm('You sure \'bout dat? All data go poof, no take-backsies.')
             .then(result => {
                 if (result) {
                     chartData.splice(index, 1); // Remove item from array
