@@ -78,9 +78,11 @@ function sortChartData() {
         }
 
         // 3. Ordenamiento terciario: fecha en orden ascendente (más antigua primero)
-        // Usar 0 para fechas inválidas para empujarlas al principio si no es una cadena de fecha válida
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
+        // Convertir las cadenas de fecha a objetos Date para una comparación precisa.
+        // Se añade 'T00:00:00' para asegurar que se interprete como medianoche local
+        // y evitar problemas de desfase horario al crear el objeto Date.
+        const dateA = new Date(a.date + 'T00:00:00').getTime();
+        const dateB = new Date(b.date + 'T00:00:00').getTime();
         return dateA - dateB;
     });
 }
@@ -100,7 +102,9 @@ function renderChart() {
     chartData.forEach((item, index) => {
         const row = document.createElement('tr');
         // Formatear fecha para mostrar
-        const displayDate = item.date ? new Date(item.date).toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' }) : 'N/A';
+        // Se añade 'T00:00:00' para asegurar que se interprete como medianoche local
+        // antes de formatear para la visualización.
+        const displayDate = item.date ? new Date(item.date + 'T00:00:00').toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' }) : 'N/A';
 
         row.innerHTML = `
             <td>${item.name}</td>
@@ -147,7 +151,12 @@ function loadChartData() {
         // Asegurarse de que los datos antiguos sin fechas y sin isSpecialRelease obtengan un valor predeterminado
         chartData.forEach(item => {
             if (!item.date) {
-                item.date = new Date().toISOString().split('T')[0]; // Predeterminado a la fecha actual
+                // Generar la fecha actual en formato YYYY-MM-DD localmente
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                item.date = `${year}-${month}-${day}`;
             }
             if (typeof item.isSpecialRelease === 'undefined') {
                 item.isSpecialRelease = false; // Predeterminado a false para entradas antiguas
@@ -232,16 +241,27 @@ xlsxFile.addEventListener('change', (event) => {
                     hasParseError = true;
                 }
 
-                // Convertir número de fecha de XLSX a cadena YYYY-MM-DD
+                // **Corrección para la fecha de XLSX:**
+                // Convertir número de fecha de XLSX a cadena YYYY-MM-DD.
+                // XLSX.utils.format_date es más robusto y maneja las peculiaridades de Excel.
                 if (typeof date === 'number') {
-                    // La fecha de Excel es el número de días desde 1900-01-01 (con un ajuste)
-                    date = new Date(Math.round((date - (25567 + 1)) * 86400 * 1000)).toISOString().split('T')[0];
+                    date = XLSX.utils.format_date(date, 'YYYY-MM-DD');
                 } else if (typeof date === 'string' && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-                    date = new Date().toISOString().split('T')[0]; // Default a la fecha actual si la cadena no es YYYY-MM-DD
+                    // Si la cadena no es YYYY-MM-DD, usar la fecha actual local.
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const day = String(today.getDate()).padStart(2, '0');
+                    date = `${year}-${month}-${day}`;
                     showMessage(`Advertencia: Fila ${rowIndex + 2}: La fecha para "${name}" no es válida y se estableció en la fecha actual.`, 'warning');
                     hasParseError = true;
                 } else if (!date) { // Si la fecha es nula/indefinida/vacía
-                    date = new Date().toISOString().split('T')[0]; // Predeterminado a la fecha actual
+                    // Usar la fecha actual local
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const day = String(today.getDate()).padStart(2, '0');
+                    date = `${year}-${month}-${day}`;
                     showMessage(`Advertencia: Fila ${rowIndex + 2}: No se proporcionó fecha para "${name}", se usó la fecha actual.`, 'info');
                 }
 
@@ -252,13 +272,13 @@ xlsxFile.addEventListener('change', (event) => {
             saveChartData();
             renderChart();
             if (!hasParseError) {
-                showMessage('XLSX imported sucessfully!', 'success');
+                showMessage('Archivo XLSX importado exitosamente!', 'success');
             } else {
-                showMessage('imported but...', 'warning');
+                showMessage('Archivo XLSX importado con algunas advertencias.', 'warning');
             }
 
         } catch (error) {
-            showMessage(`Error: ${error.message}`, 'error');
+            showMessage(`Error al procesar el archivo XLSX: ${error.message}`, 'error');
             console.error(error);
         }
     };
@@ -273,8 +293,8 @@ function handleRatingChange(event) {
     const index = event.target.dataset.index;
     let newRating = parseFloat(event.target.value);
 
-    if (isNaN(newRating) || newRating < 0.5) {
-        newRating = 0.5; // Predeterminado a 0.5 si es inválido
+    if (isNaN(newRating) || newRating < 0) {
+        newRating = 0; // Predeterminado a 0 si es inválido
         showMessage('La calificación no es válida y se ha establecido en 0.', 'warning');
     } else if (newRating > 5) {
         newRating = 5; // Limitar a 5
@@ -324,7 +344,8 @@ function handleRatingButtonClick(event) {
 addItemButton.addEventListener('click', () => {
     const name = itemNameInput.value.trim();
     let rating = parseFloat(itemRatingInput.value);
-    let date = itemDateInput.value; // Obtener fecha del input
+    // La fecha del input ya está en YYYY-MM-DD y se almacena directamente así.
+    let date = itemDateInput.value;
     const isSpecialRelease = itemSpecialReleaseInput.checked; // Obtener el estado del checkbox
 
     if (name === '') {
@@ -332,21 +353,25 @@ addItemButton.addEventListener('click', () => {
         return;
     }
 
-    if (isNaN(rating) || rating < 0.5 || rating > 5) {
-        showMessage('0.5 to 5, remember.', 'error');
+    if (isNaN(rating) || rating < 0 || rating > 5) {
+        showMessage('La calificación debe ser un número entre 0 y 5.', 'error');
         return;
     }
 
-    // Si no se proporciona fecha, se establece por defecto a la fecha actual
+    // Si no se proporciona fecha, se establece por defecto a la fecha actual local
     if (date === '') {
-        date = new Date().toISOString().split('T')[0];
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        date = `${year}-${month}-${day}`;
         showMessage('No se proporcionó fecha, se usó la fecha actual.', 'info');
     }
 
     chartData.push({ name: name, rating: rating, date: date, isSpecialRelease: isSpecialRelease });
     saveChartData();
     renderChart();
-    showMessage('That is new...', 'success');
+    showMessage('Nuevo elemento añadido.', 'success');
 
     // Limpiar inputs y resetear checkbox
     itemNameInput.value = '';
@@ -360,7 +385,7 @@ addItemButton.addEventListener('click', () => {
  */
 exportXlsxButton.addEventListener('click', () => {
     if (chartData.length === 0) {
-        showMessage('And the data?', 'warning');
+        showMessage('No hay datos para exportar.', 'warning');
         return;
     }
 
@@ -369,14 +394,14 @@ exportXlsxButton.addEventListener('click', () => {
     const worksheet = XLSX.utils.json_to_sheet(chartData);
 
     // Añadir la hoja de trabajo al libro
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Califications');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Calificaciones');
 
     // Escribir el libro en un archivo XLSX
     try {
         XLSX.writeFile(workbook, 'mis_calificaciones.xlsx');
-        showMessage('There we go...', 'success');
+        showMessage('Exportando a Excel...', 'success');
     } catch (error) {
-        showMessage(`Error: ${error.message}`, 'error');
+        showMessage(`Error al exportar a Excel: ${error.message}`, 'error');
         console.error(error);
     }
 });
@@ -386,19 +411,19 @@ exportXlsxButton.addEventListener('click', () => {
  */
 clearDataButton.addEventListener('click', () => {
     if (chartData.length === 0) {
-        showMessage('And the data?', 'info');
+        showMessage('No hay datos para borrar.', 'info');
         return;
     }
     // Usar una confirmación tipo modal personalizada en lugar de alert/confirm
-    confirm('Are ya sure?')
+    confirm('¿Estás seguro de que quieres borrar todos los datos? Esta acción es irreversible.')
         .then(result => {
             if (result) {
                 chartData = [];
                 saveChartData();
                 renderChart();
-                showMessage('This is a new world now...', 'success');
+                showMessage('Todos los datos han sido borrados.', 'success');
             } else {
-                showMessage('Then?', 'info');
+                showMessage('Operación de borrado cancelada.', 'info');
             }
         });
 });
@@ -415,7 +440,7 @@ mainTitle.addEventListener('input', () => {
     } else if (mainTitle.textContent.trim() === '') {
         mainTitle.textContent = mainTitle.dataset.placeholder;
         mainTitle.style.color = '#a0a0a0'; // Color del marcador de posición
-        mainTitle.style.fontStyle = 'sans-serif'; // Estilo del marcador de posición
+        mainTitle.style.fontStyle = 'italic'; // Estilo del marcador de posición
     }
 });
 
@@ -433,7 +458,7 @@ mainTitle.addEventListener('blur', () => {
     if (mainTitle.textContent.trim() === '') {
         mainTitle.textContent = mainTitle.dataset.placeholder;
         mainTitle.style.color = '#a0a0a0'; // Color del marcador de posición
-        mainTitle.style.fontStyle = 'sans-serif'; // Estilo del marcador de posición
+        mainTitle.style.fontStyle = 'italic'; // Estilo del marcador de posición
     }
 });
 
@@ -502,7 +527,7 @@ function confirm(message) {
 
 
     const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Not yet.';
+    cancelBtn.textContent = 'No, cancelar';
     cancelBtn.style.cssText = `
         padding: 10px 20px;
         font-size: 1rem;
