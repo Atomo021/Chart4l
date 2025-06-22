@@ -27,12 +27,18 @@
 
                 <button id="addItemButton">Add</button>
 
+	<div class="flex items-center">
+                    <input type="checkbox" id="itemSpecialReleaseInput" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="itemSpecialReleaseInput" class="ml-2 text-gray-700">Lanzamiento Especial (Vivo, Soundtrack, etc.)</label>
+                </div>
+
             <table>
                 <thead>
                     <tr>
                         <th>Name</th>
                         <th>Rating</th>
                         <th>Date</th>
+			    <th>Type</th>
                     </tr>
                 </thead>
                 <tbody id="chartBody">
